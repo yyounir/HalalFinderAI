@@ -16,5 +16,6 @@ class SavedFood(db.Model):
             "verdict": self.verdict,
             "reason": self.reason,
             "confidence": self.confidence,
-            "timestamp": self.timestamp.isoformat()
+            # FIX: Add an 'if' check to prevent crashes if timestamp is missing
+            "timestamp": self.timestamp.isoformat() if self.timestamp else None
         }

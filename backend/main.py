@@ -48,7 +48,8 @@ def detect():
 def get_saved_foods():
     # Retrieves all the saved foods from the SQL database -_- 
     saved_items = SavedFood.query.all()
-    return jsonify(result)
+    # FIX: Loop through the items and convert them to JSON
+    return jsonify([item.to_json() for item in saved_items])
 
 @app.route("/save_food", methods=["POST"])
 def save_food():
