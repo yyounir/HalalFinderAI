@@ -147,26 +147,51 @@ def detect_file():
         }
 
         response = requests.post(url, headers={"Content-Type": "application/json"}, json=payload, timeout=60)
-        
+
+        # If Gemini fails, attempt a local OCR fallback instead of returning 502
         if not response.ok:
-            return jsonify({"productName": filename, "verdict": "uncertain", "reason": f"API Error: {response.text[:200]}", "confidence": 0.0}), 502
+            # Try local OCR if available
+            try:
+                from PIL import Image
+                import pytesseract
+                from io import BytesIO
+                img = Image.open(BytesIO(raw))
+                ocr_text = pytesseract.image_to_string(img).strip()
+                if ocr_text:
+                    return jsonify(detect_halal_text(ocr_text))
+            except Exception:
+                pass
+
+            return jsonify({"productName": filename, "verdict": "uncertain", "reason": f"API Error: {response.text[:200]}", "confidence": 0.0}), 200
 
         data = response.json()
-        
+
         # Parse candidate response format
         if isinstance(data, dict) and "candidates" in data:
             result_text = data["candidates"][0]["content"]["parts"][0]["text"]
             result_json = json.loads(result_text)
             return jsonify(result_json)
         else:
-            return jsonify({"productName": filename, "verdict": "uncertain", "reason": "Failed to parse Gemini response.", "raw": data}), 502
+            # Try OCR fallback if parsing failed
+            try:
+                from PIL import Image
+                import pytesseract
+                from io import BytesIO
+                img = Image.open(BytesIO(raw))
+                ocr_text = pytesseract.image_to_string(img).strip()
+                if ocr_text:
+                    return jsonify(detect_halal_text(ocr_text))
+            except Exception:
+                pass
+
+            return jsonify({"productName": filename, "verdict": "uncertain", "reason": "Failed to parse Gemini response.", "raw": data}), 200
 
     except requests.exceptions.RequestException as e:
         print(f"Error calling Gemini for image: {e}")
-        return jsonify({"productName": filename, "verdict": "uncertain", "reason": "Failed to call Gemini API for image analysis.", "confidence": 0.0}), 500
+        return jsonify({"productName": filename, "verdict": "uncertain", "reason": "Failed to call Gemini API for image analysis.", "confidence": 0.0}), 200
     except Exception as e:
         print(f"detect_file unexpected error: {e}")
-        return jsonify({"productName": filename, "verdict": "uncertain", "reason": "Unexpected server error during image analysis.", "confidence": 0.0}), 500
+        return jsonify({"productName": filename, "verdict": "uncertain", "reason": "Unexpected server error during image analysis.", "confidence": 0.0}), 200
 
 
 # CRUD Ops
