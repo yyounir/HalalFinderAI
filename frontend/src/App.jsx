@@ -51,7 +51,7 @@ const App = () => {
         setSavedFoods(data);
       }
     } catch (err) {
-      console.error("Failed to fetch saved items. Is the Flask server running?", err);
+      console.error("Failed to fetch saved items. Please try again later", err);
     }
   };
 
@@ -70,7 +70,7 @@ const App = () => {
         body: form
       });
 
-      if (!response.ok) throw new Error('File analysis failed. Is the backend running and endpoint /detect_file available?');
+      if (!response.ok) throw new Error('File analysis failed. Please try again in a few minutes.');
 
       const data = await response.json();
       if (data.error) throw new Error(data.error);
@@ -107,7 +107,7 @@ const App = () => {
         fetchSavedFoods();
       }
     } catch (err) {
-      setError("Could not save to list. Ensure Flask backend is running.");
+      setError("Could not save to list due to database error.");
     } finally {
       setIsSaving(false);
     }
@@ -165,9 +165,9 @@ const App = () => {
 
   const getStatusColor = (verdict) => {
     switch (verdict) {
-      case 'halal': return 'text-emerald-600 bg-emerald-50 border-emerald-200';
-      case 'haram': return 'text-rose-600 bg-rose-50 border-rose-200';
-      default: return 'text-amber-600 bg-amber-50 border-amber-200';
+      case 'halal': return 'text-emerald-600 bg-emerald-50 border-emerald-200 dark:text-emerald-300 dark:bg-emerald-900 dark:border-emerald-700';
+      case 'haram': return 'text-rose-600 bg-rose-50 border-rose-200 dark:text-rose-300 dark:bg-rose-900 dark:border-rose-700';
+      default: return 'text-amber-600 bg-amber-50 border-amber-200 dark:text-amber-300 dark:bg-amber-900 dark:border-amber-700';
     }
   };
 
@@ -180,7 +180,7 @@ const App = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 pb-24 font-sans">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 pb-24 font-sans">
       {/* Header */}
       <Header />
 
@@ -188,14 +188,15 @@ const App = () => {
         {/* CHECK TAB */}
         {activeTab === 'check' && (
           <div className="space-y-6">
-            <div className="bg-[#bfffd1] rounded-3xl p-6 shadow-sm border border-slate-200">
+            <div className="bg-[#bfffd1] dark:bg-slate-800 rounded-3xl p-6 shadow-sm border border-slate-200 dark:border-slate-700">
               <h2 className="text-lg font-bold mb-2">Check Ingredients</h2>
               <textarea
-                className="w-full border bg-[#dfffe8] text-[#00601a] resize-y font-[bold] text-l duration-[0.2s] p-4 rounded-[30px] border-solid border-[#dfffe8] focus:duration-[0.2s] focus:border focus:rounded-[14px] focus:border-solid focus:border-[#00601a]"
+                className="w-full border bg-[#dfffe8] dark:bg-slate-700 text-[#00601a] dark:text-slate-100 resize-y font-[bold] text-l duration-[0.2s] p-4 rounded-[30px] border-solid border-[#dfffe8] dark:border-slate-600 focus:duration-[0.2s] focus:border focus:rounded-[14px] focus:border-solid focus:border-[#00601a]"
                 placeholder="Brand, Ingredient, or Place"
                 value={ingredients}
                 onChange={(e) => setIngredients(e.target.value)}
               />
+              
               <p className='text-sm'>HalalChecker uses AI, as a reminder please double check responses and consult official websites if you're not sure!</p>
               <div className="mt-4">
                 <input
@@ -232,7 +233,7 @@ const App = () => {
             </div>
 
             {error && (
-              <div className="p-4 bg-rose-50 text-rose-600 rounded-xl text-sm border border-rose-200">
+              <div className="p-4 bg-rose-50 dark:bg-rose-900 text-rose-600 dark:text-rose-300 rounded-xl text-sm border border-rose-200 dark:border-rose-800">
                 {error}
               </div>
             )}
