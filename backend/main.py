@@ -85,9 +85,9 @@ def detect():
 
 @app.route('/detect_file', methods=['POST'])
 def detect_file():
-    """Accept an uploaded image, forward it to the Gemini Generative Language API as image content,
-    and return the parsed JSON response expected from the model.
-    This avoids server-side OCR and relies on the model's multimodal capabilities.
+    """Forward uploaded image directly to Gemini multimodal API.
+    Tries several candidate payload shapes that Gemini may accept for images.
+    Returns parsed JSON result from the model if available, otherwise aggregated errors.
     """
     file = request.files.get('file')
     if not file:
@@ -98,104 +98,150 @@ def detect_file():
     if not api_key:
         return jsonify({"productName": filename, "verdict": "uncertain", "reason": "Server missing GEMINI_API_KEY", "confidence": 0.0}), 500
 
-    # Read image bytes and base64-encode for inclusion in the Gemini request
     try:
         raw = file.read()
         import base64
         b64 = base64.b64encode(raw).decode('utf-8')
-        mime_type = getattr(file, 'mimetype', 'image/jpeg') or 'image/jpeg'
+        mime_type = file.mimetype or 'application/octet-stream'
 
+        # First try: use Google Vision OCR to extract text from the image and analyze text.
+        try:
+            vision_url = f"https://vision.googleapis.com/v1/images:annotate?key={api_key}"
+            vision_payload = {
+                "requests": [
+                    {
+                        "image": {"content": b64},
+                        "features": [{"type": "TEXT_DETECTION", "maxResults": 1}]
+                    }
+                ]
+            }
+            vresp = requests.post(vision_url, headers={"Content-Type": "application/json"}, json=vision_payload, timeout=30)
+            if vresp.ok:
+                vdata = vresp.json()
+                annotations = vdata.get("responses", [])[0] if isinstance(vdata.get("responses"), list) and vdata.get("responses") else {}
+                text_found = None
+                if annotations:
+                    fta = annotations.get("fullTextAnnotation")
+                    if fta and fta.get("text"):
+                        text_found = fta.get("text")
+                    else:
+                        tas = annotations.get("textAnnotations") or []
+                        if len(tas) > 0 and tas[0].get("description"):
+                            text_found = tas[0].get("description")
+
+                if text_found:
+                    result = detect_halal_text(text_found)
+                    return jsonify(result)
+                # If no text found, fall through to attempting multimodal Gemini calls below
+            else:
+                # If Vision returns a client error (e.g., API key not enabled), log and continue to Gemini attempts
+                print(f"Vision OCR failed: {vresp.status_code} {vresp.text[:500]}")
+        except Exception as e:
+            print(f"Vision OCR request error: {e}")
+
+        # If OCR didn't extract useful text, attempt Gemini multimodal payloads (kept minimal)
         model = 'gemini-2.5-flash'
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
 
-        system_prompt = """
-        You are an expert Islamic Dietary Law (Halal) specialist. Analyze the provided product image.
-        If the image contains an ingredients list, try to read it and determine whether the product is halal, haram, or uncertain.
-        Respond ONLY in valid JSON with the following structure:
-        {
-          "productName": "string",
-          "verdict": "halal" | "haram" | "uncertain",
-          "reason": "string",
-          "confidence": number,
-          "flaggedIngredients": [{ "name": "string", "status": "haram" | "mushbooh", "explanation": "string" }]
-        }
-        """
+        system_prompt = (
+            "You are an expert Islamic Dietary Law (Halal) specialist. Given the provided image, "
+            "analyze the product label/text and respond ONLY in valid JSON with keys: "
+            "productName, verdict (halal|haram|uncertain), reason, confidence, flaggedIngredients[]."
+        )
 
-        # Prepare candidate payload shapes for Gemini image inputs (try multiple shapes to handle API variations)
-        candidates = []
+        generation_cfg = {"responseMimeType": "application/json", "temperature": 0.0}
 
-        candidates.append({
-            "contents": [
-                {"parts": [
-                    {"image": {"imageBytes": b64, "mimeType": mime_type}}
-                ]}
-            ],
-            "systemInstruction": {"parts": [{"text": system_prompt}]},
-            "generationConfig": {"responseMimeType": "application/json", "temperature": 0.0}
-        })
-
-        candidates.append({
-            "inputs": [
-                {"image": {"imageBytes": b64, "mimeType": mime_type}}
-            ],
-            "systemInstruction": {"parts": [{"text": system_prompt}]},
-            "generationConfig": {"responseMimeType": "application/json", "temperature": 0.0}
-        })
-
-        candidates.append({
-            "instances": [
-                {"content": {"image": {"imageBytes": b64, "mimeType": mime_type}}}
-            ],
-            "systemInstruction": {"parts": [{"text": system_prompt}]},
-            "generationConfig": {"responseMimeType": "application/json", "temperature": 0.0}
-        })
-
-        candidates.append({
-            "messages": [
-                {"content": [{"image": {"imageBytes": b64, "mimeType": mime_type}}]}
-            ],
-            "systemInstruction": {"parts": [{"text": system_prompt}]},
-            "generationConfig": {"responseMimeType": "application/json", "temperature": 0.0}
-        })
+        # Minimal candidate: use instances content imageBytes
+        candidates = [
+            {
+                "instances": [
+                    {"content": {"image": {"imageBytes": b64, "mimeType": mime_type}}}
+                ],
+                "systemInstruction": {"parts": [{"text": system_prompt}]},
+                "generationConfig": generation_cfg
+            }
+        ]
 
         errors = []
         for payload in candidates:
             try:
-                response = requests.post(url, headers={"Content-Type": "application/json"}, json=payload, timeout=60)
+                resp = requests.post(url, headers={"Content-Type": "application/json"}, json=payload, timeout=60)
             except Exception as e:
                 errors.append({"error": str(e)})
                 continue
 
-            if not response.ok:
-                text = response.text[:2000]
-                errors.append({"status": response.status_code, "body": text})
+            if not resp.ok:
+                # Log the response for server-side debugging but do not echo large API error bodies to clients
+                print(f"Gemini multimodal attempt failed: status={resp.status_code}")
+                errors.append({"status": resp.status_code})
                 continue
 
             try:
-                data = response.json()
+                data = resp.json()
             except Exception as e:
-                errors.append({"error": f"invalid json response: {e}", "text": response.text[:2000]})
+                errors.append({"error": f"invalid json response: {e}"})
                 continue
 
-            # Try to parse candidate response format
-            if isinstance(data, dict) and "candidates" in data:
-                try:
-                    result_text = data["candidates"][0]["content"]["parts"][0]["text"]
-                    result_json = json.loads(result_text)
-                    return jsonify(result_json)
-                except Exception as e:
-                    return jsonify({"productName": filename, "verdict": "uncertain", "reason": "Failed to parse Gemini candidate response.", "raw": data}), 502
-            else:
-                # Return the raw model response if it looks like JSON result
-                return jsonify(data)
+            # Try to parse standard candidate structure
+            try:
+                if isinstance(data, dict) and "candidates" in data:
+                    text_blob = data["candidates"][0]["content"]["parts"][0]["text"]
+                    try:
+                        parsed = json.loads(text_blob)
+                        return jsonify(parsed)
+                    except Exception:
+                        return jsonify({"raw": text_blob})
 
-        # All candidate payloads failed - return aggregated errors for debugging
+                if isinstance(data, dict) and "output" in data:
+                    return jsonify(data)
+
+                return jsonify(data)
+            except Exception as e:
+                errors.append({"error": str(e)})
+
+        # All attempts failed
         print(f"All Gemini payload attempts failed: {errors}")
+        # As a fallback, try Google Vision OCR to extract text and analyze that text
+        try:
+            vision_url = f"https://vision.googleapis.com/v1/images:annotate?key={api_key}"
+            vision_payload = {
+                "requests": [
+                    {
+                        "image": {"content": b64},
+                        "features": [{"type": "TEXT_DETECTION", "maxResults": 1}]
+                    }
+                ]
+            }
+            vresp = requests.post(vision_url, headers={"Content-Type": "application/json"}, json=vision_payload, timeout=30)
+            if vresp.ok:
+                vdata = vresp.json()
+                # Try to extract full text from Vision response
+                annotations = vdata.get("responses", [])[0] if isinstance(vdata.get("responses"), list) and vdata.get("responses") else {}
+                text_found = None
+                if annotations:
+                    # Prefer fullTextAnnotation if present
+                    fta = annotations.get("fullTextAnnotation")
+                    if fta and fta.get("text"):
+                        text_found = fta.get("text")
+                    else:
+                        # Fallback to textAnnotations[0].description
+                        tas = annotations.get("textAnnotations") or []
+                        if len(tas) > 0 and tas[0].get("description"):
+                            text_found = tas[0].get("description")
+
+                if text_found:
+                    # Delegate to existing text analyzer
+                    result = detect_halal_text(text_found)
+                    return jsonify(result)
+                else:
+                    errors.append({"vision": vdata})
+            else:
+                errors.append({"vision_status": vresp.status_code, "vision_body": vresp.text[:2000]})
+        except Exception as e:
+            errors.append({"vision_error": str(e)})
+
         return jsonify({"productName": filename, "verdict": "uncertain", "reason": "All Gemini payload attempts failed. See server logs.", "errors": errors}), 502
 
-    except requests.exceptions.RequestException as e:
-        print(f"Error calling Gemini for image: {e}")
-        return jsonify({"productName": filename, "verdict": "uncertain", "reason": "Failed to call Gemini API for image analysis.", "confidence": 0.0}), 500
     except Exception as e:
         print(f"detect_file unexpected error: {e}")
         return jsonify({"productName": filename, "verdict": "uncertain", "reason": "Unexpected server error during image analysis.", "confidence": 0.0}), 500
