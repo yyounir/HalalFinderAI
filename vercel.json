@@ -1,24 +1,11 @@
 {
-  "builds": [
-    {
-      "src": "main.py",
-      "use": "@vercel/python"
-    },
-    {
-      "src": "package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "dist"
-      }
-    }
-  ],
   "rewrites": [
-    { "source": "/detect", "destination": "/main.py" },
-    { "source": "/detect_file", "destination": "/main.py" },
-    { "source": "/saved_foods", "destination": "/main.py" },
-    { "source": "/save_food", "destination": "/main.py" },
-    { "source": "/delete_food/(.*)", "destination": "/main.py" },
-    { "source": "/update_food/(.*)", "destination": "/main.py" },
+    { "source": "/detect", "destination": "/api/main.py" },
+    { "source": "/detect_file", "destination": "/api/main.py" },
+    { "source": "/saved_foods", "destination": "/api/main.py" },
+    { "source": "/save_food", "destination": "/api/main.py" },
+    { "source": "/delete_food/(.*)", "destination": "/api/main.py" },
+    { "source": "/update_food/(.*)", "destination": "/api/main.py" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
