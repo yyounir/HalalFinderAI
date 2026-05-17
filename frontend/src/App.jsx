@@ -6,6 +6,7 @@ import Header from "./components/Header";
 import AiResponse from "./components/airesponse";
 import SavedList from "./components/saved";
 import BottomBar from "./components/bottombar";
+import Tips from "./components/tips";
 import { 
   Search, 
   Camera, 
@@ -243,6 +244,12 @@ const App = () => {
                 saveToDatabase={saveToDatabase}
               />
             )}
+          </div>
+        )}
+
+        {activeTab === 'tips' && (
+          <div className="space-y-4">
+            <Tips />
           </div>
         )}
 
