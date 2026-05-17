@@ -1,25 +1,51 @@
-import React, { useState, useEffect, useRef } from 'react'; // Imports the React library. Needed to defineReact components and use JSX.
-import './App.css'; // Imports the CSS file specifically for this App component, applying styles
-
-// import AIResponseCard from "./components/AIResponseCard";
-import Header from "./components/Header";
-import AiResponse from "./components/airesponse";
-import SavedList from "./components/saved";
-import BottomBar from "./components/bottombar";
-import Tips from "./components/tips";
+import React, { useState, useEffect, useRef } from 'react'; 
 import { 
   Search, 
-  Camera, 
-  CheckCircle, 
-  XCircle, 
-  AlertTriangle, 
-  ShieldCheck,
   RefreshCw,
-  Bookmark,
   UploadCloud,
-  Trash2,
-  BookmarkPlus
 } from 'lucide-react';
+
+// Stubbed components to resolve import errors in the single-file environment
+const Header = () => <header className="p-4 text-center font-bold text-xl bg-white dark:bg-slate-800 shadow-sm sticky top-0 z-50">HalalChecker</header>;
+const AiResponse = ({ result, isSaving, saveToDatabase }) => (
+  <div className="mt-4 p-6 bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700">
+    <h3 className="font-bold text-xl capitalize mb-2">{result.verdict}</h3>
+    <p className="text-sm mt-1 mb-4">{result.reason}</p>
+    {!result.saved && (
+       <button onClick={saveToDatabase} disabled={isSaving} className="mt-2 text-sm bg-[#009027] hover:bg-[#00601a] text-white font-bold px-6 py-3 rounded-[25px] transition-colors shadow-md w-full">
+         {isSaving ? 'Saving...' : 'Save Result'}
+       </button>
+    )}
+  </div>
+);
+const SavedList = ({ savedFoods, deleteFromDatabase }) => (
+  <div className="space-y-4">
+    <h2 className="font-bold text-lg px-2">Saved Foods</h2>
+    {savedFoods.length === 0 ? <p className="text-slate-500 px-2">No saved items yet.</p> : null}
+    {savedFoods.map(food => (
+      <div key={food.id || food.productName} className="p-5 bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 flex justify-between items-center">
+        <div>
+          <p className="font-bold text-lg">{food.productName}</p>
+          <p className="text-sm capitalize text-slate-500">{food.verdict}</p>
+        </div>
+        <button onClick={() => deleteFromDatabase(food.id)} className="text-rose-500 font-bold text-sm px-4 py-2 rounded-full hover:bg-rose-50 dark:hover:bg-rose-900/30 transition-colors">Delete</button>
+      </div>
+    ))}
+  </div>
+);
+const BottomBar = ({ activeTab, setActiveTab }) => (
+  <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-800 border-t dark:border-slate-700 flex justify-around p-4 pb-6 z-50 shadow-[0_-4px_20px_-10px_rgb(0,0,0,0.1)]">
+    <button onClick={() => setActiveTab('check')} className={`font-bold transition-colors ${activeTab === 'check' ? 'text-[#009027]' : 'text-slate-400 hover:text-slate-600'}`}>Check</button>
+    <button onClick={() => setActiveTab('tips')} className={`font-bold transition-colors ${activeTab === 'tips' ? 'text-[#009027]' : 'text-slate-400 hover:text-slate-600'}`}>Tips</button>
+    <button onClick={() => setActiveTab('saved')} className={`font-bold transition-colors ${activeTab === 'saved' ? 'text-[#009027]' : 'text-slate-400 hover:text-slate-600'}`}>Saved</button>
+  </div>
+);
+const Tips = () => (
+  <div className="p-6 bg-blue-50 dark:bg-blue-900/20 rounded-3xl border border-blue-100 dark:border-blue-800/50">
+    <h3 className="font-bold text-blue-800 dark:text-blue-300 mb-2">Important Reminder</h3>
+    <p className="text-sm text-blue-700 dark:text-blue-400">Always consult official certification websites or your local scholars if you are unsure about an ingredient's status!</p>
+  </div>
+);
 
 // --- API Configurations ---
 const BACKEND_URL = "http://127.0.0.1:5000";
@@ -55,25 +81,6 @@ const App = () => {
     }
   };
 
-  // Upload a file to backend for analysis. Sends multipart/form-data.
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      if (!file.type.startsWith('image/')) {
-        setError("Please upload an image file.");
-        return;
-      }
-      setSelectedFile(file);
-      setError(null);
-    }
-  };
-
-  const triggerFileInput = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
-    }
-  };
-
   const analyzeFile = async (file) => {
     if (!file) return;
     setIsUploading(true);
@@ -90,7 +97,7 @@ const App = () => {
 
       if (!response.ok) {
         const err = await response.json().catch(() => ({}));
-        throw new Error(err.error || 'File analysis failed');
+        throw new Error(err.error || err.reason || 'File analysis failed');
       }
 
       const data = await response.json();
@@ -98,60 +105,13 @@ const App = () => {
         productName: data.productName || file.name,
         verdict: data.verdict || 'uncertain',
         reason: data.reason || 'No reason provided by server.',
-        confidence: data.confidence || 0
+        confidence: data.confidence || 0,
+        flaggedIngredients: data.flaggedIngredients || []
       });
     } catch (err) {
       setError(err.message || 'File analysis failed.');
     } finally {
       setIsUploading(false);
-    }
-  };
-
-  const handleVerify = async () => {
-    if (!ingredients && !selectedFile) {
-      setError("Please enter ingredients or upload an image of the ingredients list.");
-      return;
-    }
-
-    setIsAnalyzing(true);
-    setError(null);
-    setResult(null);
-
-    try {
-      let response;
-      if (selectedFile) {
-        const formData = new FormData();
-        // Backend expects 'file' parameter (FastAPI: file: UploadFile = File(...))
-        formData.append('file', selectedFile);
-
-        // FIX: No headers specified here. Setting 'Content-Type': 'multipart/form-data' 
-        // manually strips boundaries and breaks the backend parse.
-        response = await fetch(`${BACKEND_URL}/api/verify`, {
-          method: 'POST',
-          body: formData,
-        });
-      } else {
-        response = await fetch(`${BACKEND_URL}/api/verify`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ ingredients }),
-        });
-      }
-
-      if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.detail || "Verification failed");
-      }
-
-      const data = await response.json();
-      setResult(data);
-    } catch (err) {
-      console.error(err);
-      setError(err.message || "Something went wrong. Please check your backend and try again.");
-    } finally {
-      setIsAnalyzing(false);
     }
   };
 
@@ -206,10 +166,6 @@ const App = () => {
 
       if (response.ok) {
         const data = await response.json();
-        const updated = data.get ? data.get('item') : data.item || data.item;
-        // Some responses return { item: {...} }
-        const newItem = (data.item) ? data.item : (data.item || data);
-        // Replace in state
         setSavedFoods(prev => prev.map(s => s.id === id ? (data.item || data) : s));
         return data.item || data;
       }
@@ -220,7 +176,6 @@ const App = () => {
     }
   };
 
-  // SECURE ANALYSIS: Now sends data to our Flask backend instead of Google directly!
   const analyzeIngredients = async (textToAnalyze = ingredients) => {
     if (!textToAnalyze.trim()) return;
     setIsAnalyzing(true);
@@ -244,12 +199,12 @@ const App = () => {
          throw new Error(data.error);
       }
 
-      // Map the backend JSON response to our frontend state
       setResult({
         productName: textToAnalyze.length > 30 ? textToAnalyze.substring(0, 30) + '...' : textToAnalyze,
         verdict: data.verdict || 'uncertain',
         reason: data.reason || 'No reason provided by server.',
-        confidence: data.confidence || 0
+        confidence: data.confidence || 0,
+        flaggedIngredients: data.flaggedIngredients || []
       });
 
     } catch (err) {
@@ -259,29 +214,11 @@ const App = () => {
     }
   };
 
-  const getStatusColor = (verdict) => {
-    switch (verdict) {
-      case 'halal': return 'text-emerald-600 bg-emerald-50 border-emerald-200 dark:text-emerald-300 dark:bg-emerald-900 dark:border-emerald-700';
-      case 'haram': return 'text-rose-600 bg-rose-50 border-rose-200 dark:text-rose-300 dark:bg-rose-900 dark:border-rose-700';
-      default: return 'text-amber-600 bg-amber-50 border-amber-200 dark:text-amber-300 dark:bg-amber-900 dark:border-amber-700';
-    }
-  };
-
-  const getStatusIcon = (verdict) => {
-    switch (verdict) {
-      case 'halal': return <CheckCircle className="w-8 h-8" />;
-      case 'haram': return <XCircle className="w-8 h-8" />;
-      default: return <AlertTriangle className="w-8 h-8" />;
-    }
-  };
-
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 pb-24 font-sans">
-      {/* Header */}
       <Header />
 
       <main className="max-w-md mx-auto px-4 pt-6">
-        {/* CHECK TAB */}
         {activeTab === 'check' && (
           <div className="space-y-6">
             <div className="bg-[#bfffd1] dark:bg-slate-800 rounded-3xl p-6 shadow-sm border border-slate-200 dark:border-slate-700">
@@ -293,13 +230,14 @@ const App = () => {
                 onChange={(e) => setIngredients(e.target.value)}
               />
               
-              <p className='text-sm'>HalalChecker uses AI, as a reminder please double check responses and consult official websites if you're not sure!</p>
+              <p className='text-sm mt-3 text-[#00601a] dark:text-slate-300'>HalalChecker uses AI, as a reminder please double check responses and consult official websites if you're not sure!</p>
+              
               <div className="mt-4">
                 <input
                   ref={fileInputRef}
                   id="hidden-file-input"
                   type="file"
-                  accept="image/*,text/plain"
+                  accept="image/*"
                   onChange={async (e) => {
                     const f = e.target.files?.[0] || null;
                     if (!f) return;
@@ -308,23 +246,26 @@ const App = () => {
                   }}
                   style={{ display: 'none' }}
                 />
+                
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  disabled={isUploading}
-                  className="w-full py-4 mt-4 rounded-4xl bg-[#009027] hover:bg-[#00601a] text-white font-bold flex items-center justify-center gap-2 disabled:opacity-50 transition-colors shadow-md active:bg-green-950"
+                  disabled={isUploading || isAnalyzing}
+                  className="w-full py-4 mt-2 rounded-[25px] bg-[#009027] hover:bg-[#00601a] text-white font-bold flex items-center justify-center gap-2 disabled:opacity-50 transition-colors shadow-md active:bg-green-950"
                 >
-                  <UploadCloud className="w-5 h-5" />
-                  {isUploading ? 'Uploading...' : 'Upload & Analyze'}
+                  {isUploading ? <RefreshCw className="animate-spin w-5 h-5" /> : <UploadCloud className="w-5 h-5" />}
+                  {isUploading ? 'Uploading & Analyzing...' : 'Upload & Analyze'}
                 </button>
+                
                 {selectedFile && <p className="text-xs text-slate-500 mt-2">Selected: {selectedFile.name}</p>}
               </div>
+
               <button
-                disabled={isAnalyzing || !ingredients.trim()}
+                disabled={isAnalyzing || isUploading || !ingredients.trim()}
                 onClick={() => analyzeIngredients()}
-                className="w-full py-4 mt-4 rounded-4xl bg-[#009027] hover:bg-[#00601a] text-white font-bold flex items-center justify-center gap-2 disabled:opacity-50 transition-colors shadow-md active:bg-green-950"
+                className="w-full py-4 mt-4 rounded-[25px] bg-[#009027] hover:bg-[#00601a] text-white font-bold flex items-center justify-center gap-2 disabled:opacity-50 transition-colors shadow-md active:bg-green-950"
               >
                 {isAnalyzing ? <RefreshCw className="animate-spin w-5 h-5" /> : <Search className="w-5 h-5" />}
-                {isAnalyzing ? "Analyzing..." : "Verify Ingredients"}
+                {isAnalyzing ? "Analyzing Text..." : "Verify Ingredients"}
               </button>
             </div>
 
@@ -364,5 +305,4 @@ const App = () => {
   );
 };
 
-export default App; // Exports the 'App' component so it can be imported and used in other files (like index.js).
-                   // `export default` makes it the primary export of this module.
+export default App;

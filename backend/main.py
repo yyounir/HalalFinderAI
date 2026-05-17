@@ -32,7 +32,6 @@ def detect_halal_text(text: str):
     model = 'gemini-2.5-flash'
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
     
-
     system_prompt = """
       You are an expert Islamic Dietary Law (Halal) specialist. Analyze the text.
       Respond ONLY in valid JSON:
@@ -87,7 +86,6 @@ def detect():
 def detect_file():
     """Accept an uploaded image, forward it to the Gemini Generative Language API as image content,
     and return the parsed JSON response expected from the model.
-    This avoids server-side OCR and relies on the model's multimodal capabilities.
     """
     file = request.files.get('file')
     if not file:
@@ -110,7 +108,7 @@ def detect_file():
 
         system_prompt = """
         You are an expert Islamic Dietary Law (Halal) specialist. Analyze the provided product image.
-        If the image contains an ingredients list, try to read it and determine whether the product is halal, haram, or uncertain.
+        If the image contains an ingredients list, try to read it, otherwise respond and determine whether the product is halal, haram, or uncertain based on the product name.
         Respond ONLY in valid JSON with the following structure:
         {
           "productName": "string",
@@ -121,77 +119,34 @@ def detect_file():
         }
         """
 
-        # Prepare candidate payload shapes for Gemini image inputs (try multiple shapes to handle API variations)
-        candidates = []
-
-        candidates.append({
+        # Correct payload shape for Gemini Multimodal input
+        payload = {
+            "systemInstruction": {"parts": [{"text": system_prompt}]},
             "contents": [
-                {"parts": [
-                    {"image": {"imageBytes": b64, "mimeType": mime_type}}
-                ]}
+                {
+                    "parts": [
+                        {"text": "Analyze this image and identify the ingredients, then evaluate their halal status."},
+                        {"inlineData": {"mimeType": mime_type, "data": b64}}
+                    ]
+                }
             ],
-            "systemInstruction": {"parts": [{"text": system_prompt}]},
             "generationConfig": {"responseMimeType": "application/json", "temperature": 0.0}
-        })
+        }
 
-        candidates.append({
-            "inputs": [
-                {"image": {"imageBytes": b64, "mimeType": mime_type}}
-            ],
-            "systemInstruction": {"parts": [{"text": system_prompt}]},
-            "generationConfig": {"responseMimeType": "application/json", "temperature": 0.0}
-        })
+        response = requests.post(url, headers={"Content-Type": "application/json"}, json=payload, timeout=60)
+        
+        if not response.ok:
+            return jsonify({"productName": filename, "verdict": "uncertain", "reason": f"API Error: {response.text[:200]}", "confidence": 0.0}), 502
 
-        candidates.append({
-            "instances": [
-                {"content": {"image": {"imageBytes": b64, "mimeType": mime_type}}}
-            ],
-            "systemInstruction": {"parts": [{"text": system_prompt}]},
-            "generationConfig": {"responseMimeType": "application/json", "temperature": 0.0}
-        })
-
-        candidates.append({
-            "messages": [
-                {"content": [{"image": {"imageBytes": b64, "mimeType": mime_type}}]}
-            ],
-            "systemInstruction": {"parts": [{"text": system_prompt}]},
-            "generationConfig": {"responseMimeType": "application/json", "temperature": 0.0}
-        })
-
-        errors = []
-        for payload in candidates:
-            try:
-                response = requests.post(url, headers={"Content-Type": "application/json"}, json=payload, timeout=60)
-            except Exception as e:
-                errors.append({"error": str(e)})
-                continue
-
-            if not response.ok:
-                text = response.text[:2000]
-                errors.append({"status": response.status_code, "body": text})
-                continue
-
-            try:
-                data = response.json()
-            except Exception as e:
-                errors.append({"error": f"invalid json response: {e}", "text": response.text[:2000]})
-                continue
-
-            # Try to parse candidate response format
-            if isinstance(data, dict) and "candidates" in data:
-                try:
-                    result_text = data["candidates"][0]["content"]["parts"][0]["text"]
-                    result_json = json.loads(result_text)
-                    return jsonify(result_json)
-                except Exception as e:
-                    return jsonify({"productName": filename, "verdict": "uncertain", "reason": "Failed to parse Gemini candidate response.", "raw": data}), 502
-            else:
-                # Return the raw model response if it looks like JSON result
-                return jsonify(data)
-
-        # All candidate payloads failed - return aggregated errors for debugging
-        print(f"All Gemini payload attempts failed: {errors}")
-        return jsonify({"productName": filename, "verdict": "uncertain", "reason": "All Gemini payload attempts failed. See server logs.", "errors": errors}), 502
+        data = response.json()
+        
+        # Parse candidate response format
+        if isinstance(data, dict) and "candidates" in data:
+            result_text = data["candidates"][0]["content"]["parts"][0]["text"]
+            result_json = json.loads(result_text)
+            return jsonify(result_json)
+        else:
+            return jsonify({"productName": filename, "verdict": "uncertain", "reason": "Failed to parse Gemini response.", "raw": data}), 502
 
     except requests.exceptions.RequestException as e:
         print(f"Error calling Gemini for image: {e}")
@@ -199,6 +154,7 @@ def detect_file():
     except Exception as e:
         print(f"detect_file unexpected error: {e}")
         return jsonify({"productName": filename, "verdict": "uncertain", "reason": "Unexpected server error during image analysis.", "confidence": 0.0}), 500
+
 
 # CRUD Ops
 @app.route("/saved_foods", methods=["GET"])
