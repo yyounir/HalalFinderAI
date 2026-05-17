@@ -4,9 +4,7 @@ from flask import request, jsonify
 from config import app, db
 from models import SavedFood
 import os
-import openai
 import json 
-import re
 import requests
 from dotenv import load_dotenv
 

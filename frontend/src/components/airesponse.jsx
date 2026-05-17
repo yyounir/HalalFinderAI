@@ -9,10 +9,14 @@ import { CheckCircle, XCircle, AlertTriangle, BookmarkPlus } from 'lucide-react'
 */
 
 const getStatusColor = (verdict) => {
+  // Return a set of Tailwind classes that include light + dark variants
   switch (verdict) {
-    case 'halal': return 'text-emerald-600 bg-emerald-50 border-emerald-200';
-    case 'haram': return 'text-rose-600 bg-rose-50 border-rose-200';
-    default: return 'text-amber-600 bg-amber-50 border-amber-200';
+    case 'halal':
+      return 'text-emerald-700 bg-emerald-50 border-emerald-200 dark:text-emerald-200 dark:bg-emerald-900 dark:border-emerald-700';
+    case 'haram':
+      return 'text-rose-700 bg-rose-50 border-rose-200 dark:text-rose-200 dark:bg-rose-900 dark:border-rose-700';
+    default:
+      return 'text-amber-700 bg-amber-50 border-amber-200 dark:text-amber-200 dark:bg-amber-900 dark:border-amber-700';
   }
 };
 
@@ -29,8 +33,8 @@ export default function AiResponse({ result, isSaving, saveToDatabase }) {
     <div className="bg-white dark:bg-slate-800 rounded-3xl overflow-hidden shadow-sm border border-slate-200 dark:border-slate-700 animate-in fade-in zoom-in-95 duration-300">
       <div className={`p-4 sm:p-6 text-center border-b ${getStatusColor(result.verdict)}`}>
         <div className="flex justify-center mb-2">{getStatusIcon(result.verdict)}</div>
-        <h3 className="text-xl sm:text-2xl font-black uppercase tracking-widest dark:text-slate-100">{result.verdict}</h3>
-        <p className="text-sm sm:text-base font-medium mt-1 dark:text-slate-200">{result.productName}</p>
+        <h3 className="text-xl sm:text-2xl font-black uppercase tracking-widest">{result.verdict}</h3>
+        <p className="text-sm sm:text-base font-medium mt-1 opacity-90">{result.productName}</p>
       </div>
       <div className="p-4 sm:p-6 space-y-4">
         <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">{result.reason}</p>

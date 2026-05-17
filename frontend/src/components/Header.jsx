@@ -1,40 +1,83 @@
-import React, { useEffect, useState } from 'react';
-import { Sun, Moon } from 'lucide-react';
-import mylogo from '../assets/logo.png';
+import { useEffect, useState } from 'react'
+import mylogo from '../assets/logo.png'
+import { DownloadCloud } from 'lucide-react'
 
 function Header() {
-    const [dark, setDark] = useState(() => {
-        try {
-            const stored = localStorage.getItem('theme');
-            if (stored) return stored === 'dark';
-            return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-        } catch (e) { return false; }
-    });
+    const [deferredPrompt, setDeferredPrompt] = useState(null)
+    const [canInstall, setCanInstall] = useState(false)
+    const [installed, setInstalled] = useState(false)
 
     useEffect(() => {
-        if (dark) {
-            document.documentElement.classList.add('dark');
-            localStorage.setItem('theme', 'dark');
-        } else {
-            document.documentElement.classList.remove('dark');
-            localStorage.setItem('theme', 'light');
+        const beforeHandler = (e) => {
+            e.preventDefault()
+            setDeferredPrompt(e)
+            try {
+                const dismissed = localStorage.getItem('pwaInstallDismissed')
+                if (dismissed) {
+                    const ts = parseInt(dismissed, 10)
+                    const sevenDays = 7 * 24 * 60 * 60 * 1000
+                    if (Date.now() - ts < sevenDays) return
+                }
+            } catch (err) {}
+            setCanInstall(true)
         }
-    }, [dark]);
+
+        const appInstalled = () => {
+            setInstalled(true)
+            setCanInstall(false)
+            setDeferredPrompt(null)
+        }
+
+        window.addEventListener('beforeinstallprompt', beforeHandler)
+        window.addEventListener('appinstalled', appInstalled)
+
+        if (window.matchMedia && (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone)) {
+            setInstalled(true)
+            setCanInstall(false)
+        }
+
+        return () => {
+            window.removeEventListener('beforeinstallprompt', beforeHandler)
+            window.removeEventListener('appinstalled', appInstalled)
+        }
+    }, [])
+
+    const onInstallClick = async () => {
+        if (!deferredPrompt) return
+        deferredPrompt.prompt()
+        const choice = await deferredPrompt.userChoice
+        if (choice && choice.outcome === 'accepted') {
+            setInstalled(true)
+            setCanInstall(false)
+            setDeferredPrompt(null)
+            localStorage.removeItem('pwaInstallDismissed')
+        } else {
+            try { localStorage.setItem('pwaInstallDismissed', String(Date.now())) } catch (e) {}
+            setCanInstall(false)
+        }
+    }
 
     return (
-        <header className="sticky top-0 z-50 bg-green/80 dark:bg-slate-900/60 backdrop-blur-md border-[transparent] dark:border-slate-700 h-14 sm:h-16 flex items-center px-4 sm:px-6">
-            <div className="max-w-md mx-auto w-full flex items-center gap-2 justify-between">
-                <img src={mylogo} alt="Logo" className='h-10 sm:h-12 w-auto text-white px-0 py-0 rounded'/>
-                <button
-                    onClick={() => setDark(d => !d)}
-                    className="ml-auto p-2 rounded-full bg-white/80 dark:bg-slate-700/60 hover:bg-white dark:hover:bg-slate-600 transition-colors"
-                    aria-label="Toggle theme"
-                >
-                    {dark ? <Sun className="w-5 h-5 text-yellow-300"/> : <Moon className="w-5 h-5 text-slate-700"/>}
-                </button>
+        <header className="sticky top-0 z-50 bg-green/80 backdrop-blur-md border-[transparent] border-slate-200 h-15">
+            <div className="max-w-6xl mx-auto w-full flex items-center justify-between px-6 py-3">
+                <div className="flex items-center gap-3">
+                    <img src={mylogo} alt="Logo" className="h-[50px] w-auto rounded" />
+                </div>
+
+                <div className="flex items-center gap-4">
+                    {canInstall && !installed ? (
+                        <button
+                            onClick={onInstallClick}
+                            className="flex items-center gap-3 bg-green-600 hover:bg-green-700 text-white font-semibold px-6 py-3 rounded-full shadow-md"
+                            aria-label="Install app"
+                        >
+                            <DownloadCloud size={18} />
+                        </button>
+                    ) : null}
+                </div>
             </div>
         </header>
     )
-};
+}
 
-export default Header;
+export default Header
