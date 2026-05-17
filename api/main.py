@@ -1,9 +1,14 @@
 # This file contains the /detect, /save_food, /saved_foods, and /delete_food routes
 
 from flask import request, jsonify
-from api.config import app, db
-from models import SavedFood
 import os
+import sys
+
+# Ensure the current file's directory is on sys.path so local imports work
+sys.path.insert(0, os.path.dirname(__file__))
+
+from config import app, db
+from models import SavedFood
 import json 
 import requests
 from dotenv import load_dotenv
