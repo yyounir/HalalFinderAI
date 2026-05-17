@@ -41,8 +41,8 @@ export default function Tips() {
       <div className="space-y-3">
         {tipsData.map(tip => (
           <div key={tip.id} className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
-            <div className="flex gap-4 p-4">
-              <img src={tip.img} alt={tip.title} className="w-24 h-24 object-cover rounded-lg shrink-0" />
+            <div className="flex flex-col sm:flex-row gap-4 p-4">
+              <img src={tip.img} alt={tip.title} className="w-full sm:w-24 h-40 sm:h-24 object-cover rounded-lg shrink-0" />
               <div className="flex-1">
                 <h4 className="font-bold text-sm dark:text-slate-100">{tip.title}</h4>
                 <p className="text-xs text-slate-600 dark:text-slate-300 mt-1">{tip.text}</p>

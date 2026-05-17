@@ -27,12 +27,12 @@ const getStatusIcon = (verdict) => {
 export default function AiResponse({ result, isSaving, saveToDatabase }) {
   return (
     <div className="bg-white dark:bg-slate-800 rounded-3xl overflow-hidden shadow-sm border border-slate-200 dark:border-slate-700 animate-in fade-in zoom-in-95 duration-300">
-      <div className={`p-6 text-center border-b ${getStatusColor(result.verdict)}`}>
+      <div className={`p-4 sm:p-6 text-center border-b ${getStatusColor(result.verdict)}`}>
         <div className="flex justify-center mb-2">{getStatusIcon(result.verdict)}</div>
-        <h3 className="text-2xl font-black uppercase tracking-widest dark:text-slate-100">{result.verdict}</h3>
-        <p className="text-sm font-medium mt-1 dark:text-slate-200">{result.productName}</p>
+        <h3 className="text-xl sm:text-2xl font-black uppercase tracking-widest dark:text-slate-100">{result.verdict}</h3>
+        <p className="text-sm sm:text-base font-medium mt-1 dark:text-slate-200">{result.productName}</p>
       </div>
-      <div className="p-6 space-y-4">
+      <div className="p-4 sm:p-6 space-y-4">
         <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">{result.reason}</p>
         <button 
           onClick={saveToDatabase}
