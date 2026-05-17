@@ -4,6 +4,5 @@ Flask-SQLAlchemy==3.0.3
 openai==1.9.0
 requests==2.31.0
 python-dotenv
-# Pillow and pytesseract removed; image analysis is forwarded to Gemini multimodal API
-Pillow==9.5.0
-pytesseract==0.3.10
+# Pillow and pytesseract are optional for local OCR fallback only.
+# They are provided in requirements-optional.txt so Vercel doesn't attempt to build them.
