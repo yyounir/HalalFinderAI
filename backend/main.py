@@ -94,7 +94,15 @@ def detect_file():
     filename = file.filename or 'uploaded_image'
     api_key = os.getenv('GEMINI_API_KEY')
     if not api_key:
-        return jsonify({"productName": filename, "verdict": "uncertain", "reason": "Server missing GEMINI_API_KEY", "confidence": 0.0}), 500
+        # If the server doesn't have an API key, return a graceful uncertain result
+        # rather than an HTTP 500. This keeps the frontend functional and lets
+        # the client show a helpful message without treating it as a server error.
+        return jsonify({
+            "productName": filename,
+            "verdict": "uncertain",
+            "reason": "Server GEMINI_API_KEY missing; file analysis unavailable on this host.",
+            "confidence": 0.0
+        }), 200
 
     # Read image bytes and base64-encode for inclusion in the Gemini request
     try:

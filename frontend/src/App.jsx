@@ -13,7 +13,8 @@ import Tips from './components/tips.jsx';
 
 // --- API Configurations ---
 // Use a Vite environment variable if provided, otherwise default to same-origin (empty string)
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || '';
+// Default to localhost in development for convenience; production can set VITE_BACKEND_URL
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || (import.meta.env.DEV ? 'http://127.0.0.1:5000' : '');
 
 const App = () => {
   const [activeTab, setActiveTab] = useState('check');
