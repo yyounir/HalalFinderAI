@@ -5,50 +5,15 @@ import {
   UploadCloud,
 } from 'lucide-react';
 
-// Stubbed components to resolve import errors in the single-file environment
-const Header = () => <header className="p-4 text-center font-bold text-xl bg-white dark:bg-slate-800 shadow-sm sticky top-0 z-50">HalalChecker</header>;
-const AiResponse = ({ result, isSaving, saveToDatabase }) => (
-  <div className="mt-4 p-6 bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700">
-    <h3 className="font-bold text-xl capitalize mb-2">{result.verdict}</h3>
-    <p className="text-sm mt-1 mb-4">{result.reason}</p>
-    {!result.saved && (
-       <button onClick={saveToDatabase} disabled={isSaving} className="mt-2 text-sm bg-[#009027] hover:bg-[#00601a] text-white font-bold px-6 py-3 rounded-[25px] transition-colors shadow-md w-full">
-         {isSaving ? 'Saving...' : 'Save Result'}
-       </button>
-    )}
-  </div>
-);
-const SavedList = ({ savedFoods, deleteFromDatabase }) => (
-  <div className="space-y-4">
-    <h2 className="font-bold text-lg px-2">Saved Foods</h2>
-    {savedFoods.length === 0 ? <p className="text-slate-500 px-2">No saved items yet.</p> : null}
-    {savedFoods.map(food => (
-      <div key={food.id || food.productName} className="p-5 bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 flex justify-between items-center">
-        <div>
-          <p className="font-bold text-lg">{food.productName}</p>
-          <p className="text-sm capitalize text-slate-500">{food.verdict}</p>
-        </div>
-        <button onClick={() => deleteFromDatabase(food.id)} className="text-rose-500 font-bold text-sm px-4 py-2 rounded-full hover:bg-rose-50 dark:hover:bg-rose-900/30 transition-colors">Delete</button>
-      </div>
-    ))}
-  </div>
-);
-const BottomBar = ({ activeTab, setActiveTab }) => (
-  <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-800 border-t dark:border-slate-700 flex justify-around p-4 pb-6 z-50 shadow-[0_-4px_20px_-10px_rgb(0,0,0,0.1)]">
-    <button onClick={() => setActiveTab('check')} className={`font-bold transition-colors ${activeTab === 'check' ? 'text-[#009027]' : 'text-slate-400 hover:text-slate-600'}`}>Check</button>
-    <button onClick={() => setActiveTab('tips')} className={`font-bold transition-colors ${activeTab === 'tips' ? 'text-[#009027]' : 'text-slate-400 hover:text-slate-600'}`}>Tips</button>
-    <button onClick={() => setActiveTab('saved')} className={`font-bold transition-colors ${activeTab === 'saved' ? 'text-[#009027]' : 'text-slate-400 hover:text-slate-600'}`}>Saved</button>
-  </div>
-);
-const Tips = () => (
-  <div className="p-6 bg-blue-50 dark:bg-blue-900/20 rounded-3xl border border-blue-100 dark:border-blue-800/50">
-    <h3 className="font-bold text-blue-800 dark:text-blue-300 mb-2">Important Reminder</h3>
-    <p className="text-sm text-blue-700 dark:text-blue-400">Always consult official certification websites or your local scholars if you are unsure about an ingredient's status!</p>
-  </div>
-);
+import Header from './components/Header.jsx';
+import AiResponse from './components/airesponse.jsx';
+import SavedList from './components/saved.jsx';
+import BottomBar from './components/bottombar.jsx';
+import Tips from './components/tips.jsx';
 
 // --- API Configurations ---
-const BACKEND_URL = "http://127.0.0.1:5000";
+// Use a Vite environment variable if provided, otherwise default to same-origin (empty string)
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || '';
 
 const App = () => {
   const [activeTab, setActiveTab] = useState('check');
