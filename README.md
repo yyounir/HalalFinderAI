@@ -8,11 +8,15 @@ Are you a Muslim who have been wanting to search for a specific item but don't k
 - Users can save a specific food to their saved lists which uses CRUD so they can access them later
 - Users can install this website as a Progressive Web app, which allows the app more accessible
 
+## Ongoing Issues/Problems Faced
+- Ongoing: Inserting an image on the deployment side may not function correctly
+- Many commits were made when trying to make the frontend/backend functional through Vercel which costed too much time to debug
+- Saving foods would never save to the list when running locally
+
 ## Tech Stack
 Backend: Python, Flask<br>
 Databases: SQL, CRUD <br>
 Frontend: React, Vite, Tailwind.css, Progressive Web Apps, CSS, JavaScript
-
 
 ## Associated with
 CMP 343 - Full Stack Web Development<br>
