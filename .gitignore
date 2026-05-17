@@ -1,44 +1,35 @@
 =========================
-
 Environment Variables (CRITICAL)
-
-=========================
 
 .env
 .env.*
-backend/.env
-frontend/.env
 
 =========================
-
 Backend (Python / Flask)
 
-=========================
-
-backend/.venv/
-backend/venv/
-backend/env/
-backend/pycache/
+.venv/
+venv/
+env/
+pycache/
 *.py[cod]
 *$py.class
 pyvenv.cfg
 
-Database
+Database (now located inside the api folder or root)
 
-backend/instance/
+api/instance/
+instance/
 *.db
 *.sqlite3
+mydatabase.db
 
 =========================
-
 Frontend (Node / React / Vite)
 
-=========================
-
-frontend/node_modules/
-frontend/dist/
-frontend/dist-ssr/
-frontend/*.local
+node_modules/
+dist/
+dist-ssr/
+*.local
 
 Logs
 
@@ -50,10 +41,7 @@ yarn-error.log*
 pnpm-debug.log*
 
 =========================
-
 Editor directories and OS files
-
-=========================
 
 .vscode/*
 !.vscode/extensions.json

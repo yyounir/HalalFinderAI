@@ -2,7 +2,7 @@
 
 from flask import request, jsonify
 from api.config import app, db
-from api.models import SavedFood
+from models import SavedFood
 import os
 import json 
 import requests
