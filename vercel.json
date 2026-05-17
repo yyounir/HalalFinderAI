@@ -1,11 +1,12 @@
 {
   "rewrites": [
-    { "source": "/detect", "destination": "/api/main.py" },
-    { "source": "/detect_file", "destination": "/api/main.py" },
-    { "source": "/saved_foods", "destination": "/api/main.py" },
-    { "source": "/save_food", "destination": "/api/main.py" },
-    { "source": "/delete_food/(.*)", "destination": "/api/main.py" },
-    { "source": "/update_food/(.*)", "destination": "/api/main.py" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/detect",
+      "destination": "/api/main.py"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
   ]
 }
