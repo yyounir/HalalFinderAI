@@ -56,6 +56,24 @@ const App = () => {
   };
 
   // Upload a file to backend for analysis. Sends multipart/form-data.
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (!file.type.startsWith('image/')) {
+        setError("Please upload an image file.");
+        return;
+      }
+      setSelectedFile(file);
+      setError(null);
+    }
+  };
+
+  const triggerFileInput = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
   const analyzeFile = async (file) => {
     if (!file) return;
     setIsUploading(true);
@@ -70,11 +88,12 @@ const App = () => {
         body: form
       });
 
-      if (!response.ok) throw new Error('File analysis failed. Please try again in a few minutes.');
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || 'File analysis failed');
+      }
 
       const data = await response.json();
-      if (data.error) throw new Error(data.error);
-
       setResult({
         productName: data.productName || file.name,
         verdict: data.verdict || 'uncertain',
@@ -85,6 +104,54 @@ const App = () => {
       setError(err.message || 'File analysis failed.');
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const handleVerify = async () => {
+    if (!ingredients && !selectedFile) {
+      setError("Please enter ingredients or upload an image of the ingredients list.");
+      return;
+    }
+
+    setIsAnalyzing(true);
+    setError(null);
+    setResult(null);
+
+    try {
+      let response;
+      if (selectedFile) {
+        const formData = new FormData();
+        // Backend expects 'file' parameter (FastAPI: file: UploadFile = File(...))
+        formData.append('file', selectedFile);
+
+        // FIX: No headers specified here. Setting 'Content-Type': 'multipart/form-data' 
+        // manually strips boundaries and breaks the backend parse.
+        response = await fetch(`${BACKEND_URL}/api/verify`, {
+          method: 'POST',
+          body: formData,
+        });
+      } else {
+        response = await fetch(`${BACKEND_URL}/api/verify`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ ingredients }),
+        });
+      }
+
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.detail || "Verification failed");
+      }
+
+      const data = await response.json();
+      setResult(data);
+    } catch (err) {
+      console.error(err);
+      setError(err.message || "Something went wrong. Please check your backend and try again.");
+    } finally {
+      setIsAnalyzing(false);
     }
   };
 
@@ -121,6 +188,35 @@ const App = () => {
       }
     } catch (err) {
       console.error("Delete failed", err);
+    }
+  };
+
+  const updateInDatabase = async (id, updates = {}) => {
+    try {
+      const response = await fetch(`${BACKEND_URL}/update_food/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productName: updates.productName,
+          verdict: updates.verdict,
+          reason: updates.reason,
+          confidence: updates.confidence
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const updated = data.get ? data.get('item') : data.item || data.item;
+        // Some responses return { item: {...} }
+        const newItem = (data.item) ? data.item : (data.item || data);
+        // Replace in state
+        setSavedFoods(prev => prev.map(s => s.id === id ? (data.item || data) : s));
+        return data.item || data;
+      }
+      return null;
+    } catch (err) {
+      console.error('Update failed', err);
+      return null;
     }
   };
 
@@ -258,6 +354,7 @@ const App = () => {
           <SavedList
             savedFoods={savedFoods}
             deleteFromDatabase={deleteFromDatabase}
+            updateFood={updateInDatabase}
           />
         )}
       </main>

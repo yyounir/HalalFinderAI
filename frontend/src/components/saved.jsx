@@ -1,5 +1,5 @@
-import React from 'react';
-import { Bookmark, Trash2, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
+import React, { useState } from 'react';
+import { Bookmark, Trash2, CheckCircle, XCircle, AlertTriangle, Edit2 } from 'lucide-react';
 
 /*
   SavedList component
@@ -23,7 +23,9 @@ const getStatusIcon = (verdict) => {
   }
 };
 
-export default function SavedList({ savedFoods = [], deleteFromDatabase }) {
+export default function SavedList({ savedFoods = [], deleteFromDatabase, updateFood }) {
+  const [editingId, setEditingId] = useState(null);
+  const [form, setForm] = useState({ productName: '', verdict: '' });
   if (!savedFoods || savedFoods.length === 0) {
     return (
       <div className="text-center py-16 bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 border-dashed">
@@ -41,13 +43,42 @@ export default function SavedList({ savedFoods = [], deleteFromDatabase }) {
             {getStatusIcon(item.verdict)}
           </div>
           <div className="flex-1 min-w-0">
-            <h4 className="font-bold text-sm truncate">{item.productName}</h4>
-            <p className="text-xs text-slate-500 dark:text-slate-300 truncate uppercase tracking-wider">{item.verdict} • {new Date(item.timestamp).toLocaleDateString()}</p>
+            {editingId === item.id ? (
+              <div className="space-y-2">
+                <input className="w-full p-2 rounded-md border" value={form.productName} onChange={(e) => setForm(f => ({ ...f, productName: e.target.value }))} />
+                <select className="w-full p-2 rounded-md border" value={form.verdict} onChange={(e) => setForm(f => ({ ...f, verdict: e.target.value }))}>
+                  <option value="halal">halal</option>
+                  <option value="haram">haram</option>
+                  <option value="uncertain">uncertain</option>
+                </select>
+                <div className="flex gap-2">
+                  <button onClick={async () => {
+                    if (updateFood) {
+                      const res = await updateFood(item.id, { productName: form.productName, verdict: form.verdict });
+                      if (res) setEditingId(null);
+                    }
+                  }} className="px-3 py-2 bg-emerald-600 text-white rounded">Save</button>
+                  <button onClick={() => setEditingId(null)} className="px-3 py-2 bg-slate-200 dark:bg-slate-700 rounded">Cancel</button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <h4 className="font-bold text-sm truncate">{item.productName}</h4>
+                <p className="text-xs text-slate-500 dark:text-slate-300 truncate uppercase tracking-wider">{item.verdict} • {new Date(item.timestamp).toLocaleDateString()}</p>
+              </>
+            )}
           </div>
           <div className="w-full sm:w-auto flex justify-end">
-            <button onClick={() => deleteFromDatabase(item.id)} className="text-rose-400 hover:text-rose-600 p-2 hover:bg-rose-50 dark:hover:bg-rose-900 rounded-lg transition-colors">
-              <Trash2 className="w-5 h-5" />
-            </button>
+            {editingId !== item.id && (
+              <>
+                <button onClick={() => { setEditingId(item.id); setForm({ productName: item.productName, verdict: item.verdict || 'uncertain' }); }} className="text-slate-500 hover:text-slate-700 p-2 hover:bg-slate-50 dark:hover:bg-slate-900 rounded-lg transition-colors mr-2">
+                  <Edit2 className="w-5 h-5" />
+                </button>
+                <button onClick={() => deleteFromDatabase(item.id)} className="text-rose-400 hover:text-rose-600 p-2 hover:bg-rose-50 dark:hover:bg-rose-900 rounded-lg transition-colors">
+                  <Trash2 className="w-5 h-5" />
+                </button>
+              </>
+            )}
           </div>
         </div>
       ))}
