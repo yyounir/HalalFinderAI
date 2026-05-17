@@ -50,6 +50,16 @@ export default function AiResponse({ result, isSaving, saveToDatabase }) {
           {result.saved ? <CheckCircle className="w-4 h-4" /> : <BookmarkPlus className="w-4 h-4" />}
           {result.saved ? "Saved to your Database" : "Save to Database"}
         </button>
+        {/* Check Next button: appears at the very bottom of the check section when an AI response is present */}
+        <div className="pt-2">
+          <button
+            onClick={() => window.location.reload()}
+            className="w-full py-3 mt-2 rounded-4xl bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-sm font-semibold hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+            aria-label="Check next product"
+          >
+            Check Next
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -61,7 +61,15 @@ function Header() {
         <header className="sticky top-0 z-50 bg-green/80 backdrop-blur-md border-[transparent] border-slate-200 h-15">
             <div className="max-w-6xl mx-auto w-full flex items-center justify-between px-6 py-3">
                 <div className="flex items-center gap-3">
-                    <img src={mylogo} alt="Logo" className="h-[50px] w-auto rounded" />
+                    <img
+                        onClick={() => window.location.reload()}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ' || e.code === 'Space') { e.preventDefault(); window.location.reload(); } }}
+                        role="button"
+                        tabIndex={0}
+                        src={mylogo}
+                        alt="Logo"
+                        className="h-[50px] w-auto rounded cursor-pointer"
+                    />
                 </div>
 
                 <div className="flex items-center gap-4">
