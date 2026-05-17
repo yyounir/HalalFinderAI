@@ -1,4 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react'; // Imports the React library. Needed to defineReact components and use JSX.
+import './App.css'; // Imports the CSS file specifically for this App component, applying styles
+
+// import AIResponseCard from "./components/AIResponseCard";
+import Header from "./components/Header";
+import AiResponse from "./components/airesponse";
+import SavedList from "./components/saved";
+import BottomBar from "./components/bottombar";
 import { 
   Search, 
   Camera, 
@@ -137,21 +144,16 @@ const App = () => {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 pb-24 font-sans">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200 h-16 flex items-center px-6">
-        <div className="max-w-md mx-auto w-full flex items-center gap-2">
-          <ShieldCheck className="text-indigo-600 w-6 h-6" />
-          <h1 className="text-xl font-bold">HalalFinder<span className="text-indigo-600">AI</span></h1>
-        </div>
-      </header>
+      <Header />
 
       <main className="max-w-md mx-auto px-4 pt-6">
         {/* CHECK TAB */}
         {activeTab === 'check' && (
           <div className="space-y-6">
-            <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200">
+            <div className="bg-[#bfffd1] rounded-3xl p-6 shadow-sm border border-slate-200">
               <h2 className="text-lg font-bold mb-2">Check Ingredients</h2>
               <textarea
-                className="w-full h-32 p-4 rounded-2xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm mb-4 resize-none"
+                className="w-full border bg-[#dfffe8] text-[#00601a] resize-y font-[bold] text-l duration-[0.2s] p-4 rounded-[30px] border-solid border-[#dfffe8] focus:duration-[0.2s] focus:border focus:rounded-[14px] focus:border-solid focus:border-[#00601a]"
                 placeholder="Example: Sugar, Gelatin, Red 40, E471..."
                 value={ingredients}
                 onChange={(e) => setIngredients(e.target.value)}
@@ -159,7 +161,7 @@ const App = () => {
               <button
                 disabled={isAnalyzing || !ingredients.trim()}
                 onClick={() => analyzeIngredients()}
-                className="w-full py-4 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold flex items-center justify-center gap-2 disabled:opacity-50 transition-colors shadow-md"
+                className="w-full py-4 mt-4 rounded-4xl bg-[#009027] hover:bg-[#00601a] text-white font-bold flex items-center justify-center gap-2 disabled:opacity-50 transition-colors shadow-md active:bg-green-950"
               >
                 {isAnalyzing ? <RefreshCw className="animate-spin w-5 h-5" /> : <Search className="w-5 h-5" />}
                 {isAnalyzing ? "Analyzing..." : "Verify Ingredients"}
@@ -173,78 +175,27 @@ const App = () => {
             )}
 
             {result && (
-              <div className="bg-white rounded-3xl overflow-hidden shadow-xl border border-slate-200 animate-in fade-in zoom-in-95 duration-300">
-                <div className={`p-6 text-center border-b ${getStatusColor(result.verdict)}`}>
-                  <div className="flex justify-center mb-2">{getStatusIcon(result.verdict)}</div>
-                  <h3 className="text-2xl font-black uppercase tracking-widest">{result.verdict}</h3>
-                  <p className="text-sm font-medium mt-1">{result.productName}</p>
-                </div>
-                <div className="p-6 space-y-4">
-                  <p className="text-sm text-slate-600 leading-relaxed">{result.reason}</p>
-                  <button 
-                    onClick={saveToDatabase}
-                    disabled={isSaving || result.saved}
-                    className={`w-full py-3 rounded-xl flex items-center justify-center gap-2 font-bold text-sm border-2 transition-all ${
-                      result.saved 
-                        ? 'border-emerald-500 text-emerald-600 bg-emerald-50' 
-                        : 'border-indigo-600 text-indigo-600 hover:bg-indigo-50'
-                    }`}
-                  >
-                    {result.saved ? <CheckCircle className="w-4 h-4" /> : <BookmarkPlus className="w-4 h-4" />}
-                    {result.saved ? "Saved to your Database" : "Save to Database"}
-                  </button>
-                </div>
-              </div>
+              <AiResponse
+                result={result}
+                isSaving={isSaving}
+                saveToDatabase={saveToDatabase}
+              />
             )}
           </div>
         )}
 
-        {/* SAVED TAB */}
         {activeTab === 'saved' && (
-          <div className="space-y-4">
-            <h2 className="text-xl font-bold px-2">Saved Foods</h2>
-            {savedFoods.length === 0 ? (
-              <div className="text-center py-16 bg-white rounded-3xl border border-slate-200 border-dashed">
-                <Bookmark className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                <p className="text-slate-500">Your database is empty.</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {savedFoods.map(item => (
-                  <div key={item.id} className="bg-white p-4 rounded-2xl border border-slate-200 flex items-center gap-4 shadow-sm">
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${getStatusColor(item.verdict)}`}>
-                      {getStatusIcon(item.verdict)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-bold text-sm truncate">{item.productName}</h4>
-                      <p className="text-xs text-slate-500 truncate uppercase tracking-wider">{item.verdict} • {new Date(item.timestamp).toLocaleDateString()}</p>
-                    </div>
-                    <button onClick={() => deleteFromDatabase(item.id)} className="text-rose-400 hover:text-rose-600 p-2 hover:bg-rose-50 rounded-lg transition-colors">
-                      <Trash2 className="w-5 h-5" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          <SavedList
+            savedFoods={savedFoods}
+            deleteFromDatabase={deleteFromDatabase}
+          />
         )}
       </main>
 
-      {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 px-6 pb-6 pt-2 bg-gradient-to-t from-slate-50 via-slate-50 to-transparent pointer-events-none">
-        <div className="max-w-md mx-auto h-16 bg-white/90 backdrop-blur-xl border border-slate-200 rounded-full shadow-lg flex items-center justify-around pointer-events-auto">
-          <button onClick={() => setActiveTab('check')} className={`flex flex-col items-center gap-1 transition-all px-6 py-2 rounded-full ${activeTab === 'check' ? 'text-indigo-600' : 'text-slate-400'}`}>
-            <Search className="w-6 h-6" />
-            <span className="text-[10px] font-bold tracking-widest">CHECK</span>
-          </button>
-          <button onClick={() => setActiveTab('saved')} className={`flex flex-col items-center gap-1 transition-all px-6 py-2 rounded-full ${activeTab === 'saved' ? 'text-indigo-600' : 'text-slate-400'}`}>
-            <Bookmark className="w-6 h-6" />
-            <span className="text-[10px] font-bold tracking-widest">SAVED</span>
-          </button>
-        </div>
-      </nav>
+      <BottomBar activeTab={activeTab} setActiveTab={setActiveTab} />
     </div>
   );
 };
 
-export default App;
+export default App; // Exports the 'App' component so it can be imported and used in other files (like index.js).
+                   // `export default` makes it the primary export of this module.

@@ -5,33 +5,13 @@ from config import app, db
 from models import SavedFood
 import os
 import openai
+import json 
 import re
 import requests
 from dotenv import load_dotenv
 
 # Load environment variables from the .env file
 load_dotenv()
-
-# (The existing detect_halal_text function remains the same as before)
-# def detect_halal_text(text: str):
-#     # ... existing AI and heuristic logic ...
-#     # Note: Using the logic from your previous main.py
-#     text_clean = (text or "").strip()
-#     if not text_clean:
-#         return {"verdict": "uncertain", "reason": "No text provided", "confidence": 0.0}
-
-#     # Common keywords that is not halal under standards:
-#     haram_keywords = ["pork", "porcine", "lard", "gelatin", "bacon", "ham", "pancetta", "blood", "rum", "alcohol"]
-    
-
-#     lowered = text_clean.lower() # Make the out a lowercase letter
-#     for kw in haram_keywords:
-#         if kw in lowered:
-#             return {"verdict": "haram", "reason": f"Found keyword '{kw}'", "confidence": 0.9}
-#         # AI sets confidence to determine if the food is halal or not
-    
-#     # This returns if there are no indicators found from the search
-#     return {"verdict": "uncertain", "reason": "No clear indicators found.", "confidence": 0.4}
 
 def detect_halal_text(text: str):
     text_clean = (text or "").strip()
