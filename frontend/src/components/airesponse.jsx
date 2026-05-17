@@ -26,7 +26,7 @@ const getStatusIcon = (verdict) => {
 
 export default function AiResponse({ result, isSaving, saveToDatabase }) {
   return (
-    <div className="bg-white rounded-3xl overflow-hidden shadow-sm border border-slate-200 animate-in fade-in zoom-in-95 duration-300">
+    <div className="bg-gray-100 rounded-3xl overflow-hidden shadow-sm animate-in fade-in zoom-in-95 duration-300">
       <div className={`p-6 text-center border-b ${getStatusColor(result.verdict)}`}>
         <div className="flex justify-center mb-2">{getStatusIcon(result.verdict)}</div>
         <h3 className="text-2xl font-black uppercase tracking-widest">{result.verdict}</h3>
@@ -39,8 +39,8 @@ export default function AiResponse({ result, isSaving, saveToDatabase }) {
           disabled={isSaving || result.saved}
           className={`w-full py-4 mt-4 rounded-4xl bg-green-100 flex items-center justify-center gap-2 font-bold text-sm transition-all ${
             result.saved 
-              ? 'border-emerald-500 text-green-700 bg-green-200' 
-              : 'border-indigo-600 text-green-700 hover:bg-green-200'
+              ? 'border-emerald-500 text-green-700 bg-green-200 active:bg-green-300' 
+              : 'border-indigo-600 text-green-700 hover:bg-green-200 active:bg-green-300'
           }`}
         >
           {result.saved ? <CheckCircle className="w-4 h-4" /> : <BookmarkPlus className="w-4 h-4" />}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'; // Imports the React library. Needed to defineReact components and use JSX.
+import React, { useState, useEffect, useRef } from 'react'; // Imports the React library. Needed to defineReact components and use JSX.
 import './App.css'; // Imports the CSS file specifically for this App component, applying styles
 
 // import AIResponseCard from "./components/AIResponseCard";
@@ -15,6 +15,7 @@ import {
   ShieldCheck,
   RefreshCw,
   Bookmark,
+  UploadCloud,
   Trash2,
   BookmarkPlus
 } from 'lucide-react';
@@ -26,6 +27,9 @@ const App = () => {
   const [activeTab, setActiveTab] = useState('check');
   const [ingredients, setIngredients] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef(null);
   const [result, setResult] = useState(null);
   const [savedFoods, setSavedFoods] = useState([]);
   const [isSaving, setIsSaving] = useState(false);
@@ -47,6 +51,39 @@ const App = () => {
       }
     } catch (err) {
       console.error("Failed to fetch saved items. Is the Flask server running?", err);
+    }
+  };
+
+  // Upload a file to backend for analysis. Sends multipart/form-data.
+  const analyzeFile = async (file) => {
+    if (!file) return;
+    setIsUploading(true);
+    setError(null);
+    setResult(null);
+    try {
+      const form = new FormData();
+      form.append('file', file);
+
+      const response = await fetch(`${BACKEND_URL}/detect_file`, {
+        method: 'POST',
+        body: form
+      });
+
+      if (!response.ok) throw new Error('File analysis failed. Is the backend running and endpoint /detect_file available?');
+
+      const data = await response.json();
+      if (data.error) throw new Error(data.error);
+
+      setResult({
+        productName: data.productName || file.name,
+        verdict: data.verdict || 'uncertain',
+        reason: data.reason || 'No reason provided by server.',
+        confidence: data.confidence || 0
+      });
+    } catch (err) {
+      setError(err.message || 'File analysis failed.');
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -154,10 +191,35 @@ const App = () => {
               <h2 className="text-lg font-bold mb-2">Check Ingredients</h2>
               <textarea
                 className="w-full border bg-[#dfffe8] text-[#00601a] resize-y font-[bold] text-l duration-[0.2s] p-4 rounded-[30px] border-solid border-[#dfffe8] focus:duration-[0.2s] focus:border focus:rounded-[14px] focus:border-solid focus:border-[#00601a]"
-                placeholder="Example: Sugar, Gelatin, Red 40, E471..."
+                placeholder="Brand, Ingredient, or Place"
                 value={ingredients}
                 onChange={(e) => setIngredients(e.target.value)}
               />
+              <p className='text-sm'>HalalChecker uses AI, as a reminder please double check responses and consult official websites if you're not sure!</p>
+              <div className="mt-4">
+                <input
+                  ref={fileInputRef}
+                  id="hidden-file-input"
+                  type="file"
+                  accept="image/*,text/plain"
+                  onChange={async (e) => {
+                    const f = e.target.files?.[0] || null;
+                    if (!f) return;
+                    setSelectedFile(f);
+                    await analyzeFile(f);
+                  }}
+                  style={{ display: 'none' }}
+                />
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading}
+                  className="w-full py-4 mt-4 rounded-4xl bg-[#009027] hover:bg-[#00601a] text-white font-bold flex items-center justify-center gap-2 disabled:opacity-50 transition-colors shadow-md active:bg-green-950"
+                >
+                  <UploadCloud className="w-5 h-5" />
+                  {isUploading ? 'Uploading...' : 'Upload & Analyze'}
+                </button>
+                {selectedFile && <p className="text-xs text-slate-500 mt-2">Selected: {selectedFile.name}</p>}
+              </div>
               <button
                 disabled={isAnalyzing || !ingredients.trim()}
                 onClick={() => analyzeIngredients()}

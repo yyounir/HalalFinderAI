@@ -32,7 +32,19 @@
 body {
   margin: 0;
   background-color: #dfffe8;
+  font-family: var(--heading);
 }
+
+button, p {
+  font-family: var(--heading);
+}
+
+span{
+  font-family: var(--heading);
+  font-weight: 900;
+}
+
+
 
 h1,
 h2 {
@@ -44,6 +56,8 @@ h2 {
 textarea {
   font-family: var(--sans);
 }
+
+::-webkit-scrollbar { width: 0 !important; height: 0 !important; }
 
 h1 {
   font-size: 56px;

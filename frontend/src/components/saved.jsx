@@ -36,7 +36,7 @@ export default function SavedList({ savedFoods = [], deleteFromDatabase }) {
   return (
     <div className="space-y-3">
       {savedFoods.map(item => (
-        <div key={item.id} className="bg-white p-4 rounded-2xl border border-slate-200 flex items-center gap-4 shadow-sm">
+        <div key={item.id} className="bg-white p-4 rounded-2xl flex items-center gap-4 shadow-sm">
           <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${getStatusColor(item.verdict)}`}>
             {getStatusIcon(item.verdict)}
           </div>
