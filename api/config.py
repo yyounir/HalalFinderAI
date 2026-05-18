@@ -19,6 +19,13 @@ if database_url:
     if database_url.startswith("postgres://"):
         database_url = database_url.replace("postgres://", "postgresql://", 1)
 
+    # Prefer the pure-Python pg8000 driver on hosts where building psycopg2 is problematic
+    # (e.g., Vercel's build image without libpq/pg_config). If a driver is already
+    # specified (postgresql+...), do not modify the URL.
+    if database_url.startswith("postgresql://") and "+" not in database_url:
+        # Use pg8000 by default to avoid native build requirements
+        database_url = database_url.replace("postgresql://", "postgresql+pg8000://", 1)
+
     # Ensure SSL for Supabase/Postgres if not specified
     if "supabase" in database_url and "sslmode" not in database_url:
         # append sslmode=require preserving existing query params

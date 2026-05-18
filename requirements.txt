@@ -6,4 +6,5 @@ requests==2.31.0
 python-dotenv
 # Pillow and pytesseract are optional for local OCR fallback only.
 # They are provided in requirements-optional.txt so Vercel doesn't attempt to build them.
-psycopg2-binary==2.9.6
+# Use a pure-Python Postgres driver on Vercel to avoid building psycopg2 from source.
+pg8000
