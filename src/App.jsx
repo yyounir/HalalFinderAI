@@ -36,25 +36,32 @@ const App = () => {
   }, [activeTab]);
 
   const fetchSavedFoods = async () => {
-    try {
-      const response = await fetch(`${BACKEND_URL}/saved_foods`);
-      const contentType = response.headers.get('content-type') || '';
+    // Try configured backend first, then fall back to localhost
+    const candidates = [];
+    if (BACKEND_URL) candidates.push(BACKEND_URL.replace(/\/$/, ''));
+    candidates.push('http://127.0.0.1:5000');
 
-      if (!response.ok) {
-        const text = await response.text().catch(() => '');
-        throw new Error(text || 'Failed to fetch saved foods');
+    let lastErr = null;
+    for (const base of candidates) {
+      try {
+        const response = await fetch(`${base}/saved_foods`);
+        const contentType = response.headers.get('content-type') || '';
+        if (!response.ok) {
+          const text = await response.text().catch(() => '');
+          throw new Error(text || 'Failed to fetch saved foods');
+        }
+        if (!contentType.includes('application/json')) {
+          throw new Error('Non-JSON response from backend');
+        }
+        const data = await response.json();
+        setSavedFoods(data);
+        return;
+      } catch (err) {
+        lastErr = err;
       }
-
-      if (!contentType.includes('application/json')) {
-        throw new Error('Backend not found. Start the Flask backend or set VITE_BACKEND_URL to the API URL.');
-      }
-
-      const data = await response.json();
-      setSavedFoods(data);
-    } catch (err) {
-      console.error("Failed to fetch saved items. Please try again later", err);
-      setError(err.message || 'Failed to fetch saved items.');
     }
+    console.error('Failed to fetch saved items. Please try again later', lastErr);
+    setError(lastErr?.message || 'Failed to fetch saved items.');
   };
 
   const analyzeFile = async (file) => {
@@ -95,24 +102,39 @@ const App = () => {
     if (!result) return;
     setIsSaving(true);
     try {
-      const response = await fetch(`${BACKEND_URL}/save_food`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          productName: result.productName || "Scanned Product",
-          verdict: result.verdict,
-          reason: result.reason,
-          confidence: result.confidence
-        })
-      });
-      const contentType = response.headers.get('content-type') || '';
-      if (!response.ok) {
-        const text = await response.text().catch(() => '');
-        throw new Error(text || 'Save failed');
+      const candidates = [];
+      if (BACKEND_URL) candidates.push(BACKEND_URL.replace(/\/$/, ''));
+      candidates.push('http://127.0.0.1:5000');
+
+      let saved = false;
+      let lastErr = null;
+      for (const base of candidates) {
+        try {
+          const response = await fetch(`${base}/save_food`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              productName: result.productName || "Scanned Product",
+              verdict: result.verdict,
+              reason: result.reason,
+              confidence: result.confidence
+            })
+          });
+          const contentType = response.headers.get('content-type') || '';
+          if (!response.ok) {
+            const text = await response.text().catch(() => '');
+            throw new Error(text || 'Save failed');
+          }
+          if (!contentType.includes('application/json')) {
+            throw new Error('Non-JSON response from backend');
+          }
+          saved = true;
+          break;
+        } catch (err) {
+          lastErr = err;
+        }
       }
-      if (!contentType.includes('application/json')) {
-        throw new Error('Backend not found. Start the Flask backend or set VITE_BACKEND_URL to the API URL.');
-      }
+      if (!saved) throw lastErr || new Error('Save failed');
       setResult(prev => ({ ...prev, saved: true }));
       fetchSavedFoods();
     } catch (err) {

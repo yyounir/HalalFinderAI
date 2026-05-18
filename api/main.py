@@ -269,6 +269,24 @@ def update_food(food_id):
     
 
 if __name__ == "__main__":
+    # Initialize the SQLAlchemy extension with the app here so we can
+    # catch and handle engine/driver errors (e.g. missing psycopg2) and
+    # fall back to a local SQLite database without double-registering.
+    try:
+        db.init_app(app)
+    except Exception as e:
+        print("WARNING: Failed to initialize DB engine:", e)
+        print("Falling back to local SQLite database at instance/mydatabase.db")
+        try:
+            os.makedirs(app.instance_path, exist_ok=True)
+            db_file = os.path.join(app.instance_path, 'mydatabase.db')
+            app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{db_file}"
+            # Try initializing again with the fallback URI
+            db.init_app(app)
+        except Exception as e2:
+            print("ERROR: Fallback DB initialization failed:", e2)
+            raise
+
     with app.app_context():
         db.create_all()
     app.run(debug=False)

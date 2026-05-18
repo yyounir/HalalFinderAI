@@ -15,8 +15,18 @@ is_vercel = os.environ.get("VERCEL") == "1"
 database_url = os.environ.get("DATABASE_URL") # For future Postgres upgrades
 
 if database_url:
+    # SQLAlchemy expects postgresql:// scheme
     if database_url.startswith("postgres://"):
         database_url = database_url.replace("postgres://", "postgresql://", 1)
+
+    # Ensure SSL for Supabase/Postgres if not specified
+    if "supabase" in database_url and "sslmode" not in database_url:
+        # append sslmode=require preserving existing query params
+        if "?" in database_url:
+            database_url = database_url + "&sslmode=require"
+        else:
+            database_url = database_url + "?sslmode=require"
+
     app.config["SQLALCHEMY_DATABASE_URI"] = database_url
 elif is_vercel:
     # On Vercel, use the /tmp directory (the only writable folder)
@@ -30,5 +40,11 @@ else:
 
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
-# Create a database instance
-db = SQLAlchemy(app)
+# Optional engine options to keep connections healthy on hosted Postgres
+app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"pool_pre_ping": True}
+
+# Create a SQLAlchemy object here but don't bind to the app yet.
+# Binding (db.init_app) happens in api/main.py so we can handle
+# initialization errors (missing drivers, bad DATABASE_URL) without
+# double-registering the extension on the Flask app.
+db = SQLAlchemy()
