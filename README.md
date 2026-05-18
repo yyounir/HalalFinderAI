@@ -40,7 +40,17 @@ HalalFinderAI/
 └── README.md
 ```
 
-## 🚀 Backend Setup
+# 🚀 Getting Started
+Follow these instructions to get a copy of the project up and running on your local machine for development and testing.
+
+### Prerequisites
+
+You will need the following installed on your machine:
+* [Node.js](https://nodejs.org/) (for the frontend)
+* [Python 3.8+](https://www.python.org/) (for the backend)
+* A [Google Gemini API Key](https://aistudio.google.com/app/apikey)
+
+### Backend Setup
 
 1. Open your terminal and navigate to the `backend` directory:
    ```bash
@@ -64,7 +74,7 @@ HalalFinderAI/
     ```bash
     python main.py
     # The backend should now be running on http://127.0.0.1:5000.
-## 🚀 Frontend Setup
+### Frontend Setup
 1. Open a new terminal window and navigate to the frontend directory:
     ```bash
     cd frontend
