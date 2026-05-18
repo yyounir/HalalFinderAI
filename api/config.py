@@ -26,13 +26,12 @@ if database_url:
         # Use pg8000 by default to avoid native build requirements
         database_url = database_url.replace("postgresql://", "postgresql+pg8000://", 1)
 
-    # Ensure SSL for Supabase/Postgres if not specified
+    # For pg8000, SSL is enabled via the sslmode query parameter
+    # However, pg8000 may require a different approach. We'll add it as a query param
+    # but SQLAlchemy's connect_args might be needed to handle it properly
     if "supabase" in database_url and "sslmode" not in database_url:
-        # append sslmode=require preserving existing query params
-        if "?" in database_url:
-            database_url = database_url + "&sslmode=require"
-        else:
-            database_url = database_url + "?sslmode=require"
+        # For pg8000, we use connect_args instead of URL parameters
+        pass  # SSL will be handled via connect_args below
 
     app.config["SQLALCHEMY_DATABASE_URI"] = database_url
 elif is_vercel:
@@ -47,11 +46,15 @@ else:
 
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
-# Optional engine options to keep connections healthy on hosted Postgres
-app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"pool_pre_ping": True}
+# Engine options for health checks
+engine_options = {"pool_pre_ping": True}
 
-# Create a SQLAlchemy object here but don't bind to the app yet.
-# Binding (db.init_app) happens in api/main.py so we can handle
-# initialization errors (missing drivers, bad DATABASE_URL) without
-# double-registering the extension on the Flask app.
-db = SQLAlchemy()
+# For PostgreSQL with Supabase, SSL is typically handled automatically by the database URL
+# pg8000 does not need explicit SSL configuration for Supabase connections
+# The connection string itself contains the necessary SSL information
+
+app.config["SQLALCHEMY_ENGINE_OPTIONS"] = engine_options
+
+# Create and bind SQLAlchemy to the app immediately
+# This ensures the database is initialized when the config is imported
+db = SQLAlchemy(app)

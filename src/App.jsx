@@ -12,9 +12,9 @@ import BottomBar from './components/bottombar.jsx';
 import Tips from './components/tips.jsx';
 
 // --- API Configurations ---
-// Use a Vite environment variable if provided, otherwise default to same-origin (empty string)
-// Default to localhost in development for convenience; production can set VITE_BACKEND_URL
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || (import.meta.env.DEV ? 'http://127.0.0.1:5000' : '');
+// Use a Vite environment variable if provided, otherwise default to same-origin
+// In development: use localhost:5000, In production (Vercel): use /api relative path
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || (import.meta.env.DEV ? 'http://127.0.0.1:5000' : '/api');
 
 const App = () => {
   const [activeTab, setActiveTab] = useState('check');
@@ -36,32 +36,23 @@ const App = () => {
   }, [activeTab]);
 
   const fetchSavedFoods = async () => {
-    // Try configured backend first, then fall back to localhost
-    const candidates = [];
-    if (BACKEND_URL) candidates.push(BACKEND_URL.replace(/\/$/, ''));
-    candidates.push('http://127.0.0.1:5000');
-
-    let lastErr = null;
-    for (const base of candidates) {
-      try {
-        const response = await fetch(`${base}/saved_foods`);
-        const contentType = response.headers.get('content-type') || '';
-        if (!response.ok) {
-          const text = await response.text().catch(() => '');
-          throw new Error(text || 'Failed to fetch saved foods');
-        }
-        if (!contentType.includes('application/json')) {
-          throw new Error('Non-JSON response from backend');
-        }
-        const data = await response.json();
-        setSavedFoods(data);
-        return;
-      } catch (err) {
-        lastErr = err;
+    try {
+      const url = BACKEND_URL.replace(/\/$/, '') + '/saved_foods';
+      const response = await fetch(url);
+      const contentType = response.headers.get('content-type') || '';
+      if (!response.ok) {
+        const text = await response.text().catch(() => '');
+        throw new Error(text || 'Failed to fetch saved foods');
       }
+      if (!contentType.includes('application/json')) {
+        throw new Error('Non-JSON response from backend');
+      }
+      const data = await response.json();
+      setSavedFoods(data);
+    } catch (err) {
+      console.error('Failed to fetch saved items:', err);
+      setError(err?.message || 'Failed to fetch saved items.');
     }
-    console.error('Failed to fetch saved items. Please try again later', lastErr);
-    setError(lastErr?.message || 'Failed to fetch saved items.');
   };
 
   const analyzeFile = async (file) => {
@@ -73,7 +64,8 @@ const App = () => {
       const form = new FormData();
       form.append('file', file);
 
-      const response = await fetch(`${BACKEND_URL}/detect_file`, {
+      const url = BACKEND_URL.replace(/\/$/, '') + '/detect_file';
+      const response = await fetch(url, {
         method: 'POST',
         body: form
       });
@@ -102,39 +94,25 @@ const App = () => {
     if (!result) return;
     setIsSaving(true);
     try {
-      const candidates = [];
-      if (BACKEND_URL) candidates.push(BACKEND_URL.replace(/\/$/, ''));
-      candidates.push('http://127.0.0.1:5000');
-
-      let saved = false;
-      let lastErr = null;
-      for (const base of candidates) {
-        try {
-          const response = await fetch(`${base}/save_food`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              productName: result.productName || "Scanned Product",
-              verdict: result.verdict,
-              reason: result.reason,
-              confidence: result.confidence
-            })
-          });
-          const contentType = response.headers.get('content-type') || '';
-          if (!response.ok) {
-            const text = await response.text().catch(() => '');
-            throw new Error(text || 'Save failed');
-          }
-          if (!contentType.includes('application/json')) {
-            throw new Error('Non-JSON response from backend');
-          }
-          saved = true;
-          break;
-        } catch (err) {
-          lastErr = err;
-        }
+      const url = BACKEND_URL.replace(/\/$/, '') + '/save_food';
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productName: result.productName || "Scanned Product",
+          verdict: result.verdict,
+          reason: result.reason,
+          confidence: result.confidence
+        })
+      });
+      const contentType = response.headers.get('content-type') || '';
+      if (!response.ok) {
+        const text = await response.text().catch(() => '');
+        throw new Error(text || 'Save failed');
       }
-      if (!saved) throw lastErr || new Error('Save failed');
+      if (!contentType.includes('application/json')) {
+        throw new Error('Non-JSON response from backend');
+      }
       setResult(prev => ({ ...prev, saved: true }));
       fetchSavedFoods();
     } catch (err) {
@@ -146,7 +124,8 @@ const App = () => {
 
   const deleteFromDatabase = async (id) => {
     try {
-      const response = await fetch(`${BACKEND_URL}/delete_food/${id}`, { method: 'DELETE' });
+      const url = BACKEND_URL.replace(/\/$/, '') + `/delete_food/${id}`;
+      const response = await fetch(url, { method: 'DELETE' });
       if (response.ok) {
         setSavedFoods(savedFoods.filter(item => item.id !== id));
       }
@@ -157,7 +136,8 @@ const App = () => {
 
   const updateInDatabase = async (id, updates = {}) => {
     try {
-      const response = await fetch(`${BACKEND_URL}/update_food/${id}`, {
+      const url = BACKEND_URL.replace(/\/$/, '') + `/update_food/${id}`;
+      const response = await fetch(url, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -187,7 +167,8 @@ const App = () => {
     setResult(null);
 
     try {
-      const response = await fetch(`${BACKEND_URL}/detect`, {
+      const url = BACKEND_URL.replace(/\/$/, '') + '/detect';
+      const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: textToAnalyze })
