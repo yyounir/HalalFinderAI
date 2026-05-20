@@ -13,7 +13,7 @@ https://halal-finder-ai.vercel.app/<br><br>
 Note: This application is currently optimized for local execution. I am actively working on resolving CORS and serverless environment configurations for Vercel deployment.
 
 ## ⚠️ Disclaimer
-HalalFinderAI uses Generative AI to analyze ingredients. While it is prompted with expert guidelines, AI can occasionally make mistakes or hallucinate. Users should always double-check responses, read physical labels, and consult official Halal certification authorities if they are unsure.
+HalalChekcerAI uses Generative AI to analyze ingredients. While it is prompted with expert guidelines, AI can occasionally make mistakes or hallucinate. Users should always double-check responses, read physical labels, and consult official Halal certification authorities if they are unsure.
 
 
 ## 💻 Tech Stack
