@@ -12,7 +12,7 @@ HalalChecker AI is a Python-based application powered by the Gemini API, designe
 https://halal-finder-ai.vercel.app/
 
 ## ⚠️ Disclaimer
-HalalFinderAI uses Generative AI to analyze ingredients. While it is prompted with expert guidelines, AI can occasionally make mistakes or hallucinate. Users should always double-check responses, read physical labels, and consult official Halal certification authorities if they are unsure.<br>
+HalalFinderAI uses Generative AI to analyze ingredients. While it is prompted with expert guidelines, AI can occasionally make mistakes or hallucinate. Users should always double-check responses, read physical labels, and consult official Halal certification authorities if they are unsure.<br><br>
 Note: This application is currently optimized for local execution. I am actively working on resolving CORS and serverless environment configurations for Vercel deployment.
 
 
